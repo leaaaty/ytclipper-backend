@@ -1,9 +1,9 @@
-# Stage 1: build dependencies (Node modules)
+# Stage 1: build Node dependencies
 FROM node:20-slim AS builder
 
 WORKDIR /app
 
-# Copy only package files for efficient caching
+# Copy only package files for caching
 COPY package*.json ./
 
 # Install production dependencies
@@ -14,17 +14,16 @@ FROM node:20-slim
 
 WORKDIR /app
 
-# Install system dependencies
+# Install system dependencies: ffmpeg, python3, pip, curl, certificates
 RUN apt-get update && \
     apt-get install -y --no-install-recommends \
       ffmpeg \
+      python3 \
+      python3-pip \
       curl \
       ca-certificates \
-    && rm -rf /var/lib/apt/lists/*
-
-# Download standalone yt-dlp binary
-RUN curl -L https://github.com/yt-dlp/yt-dlp/releases/latest/download/yt-dlp -o /usr/local/bin/yt-dlp \
-    && chmod +x /usr/local/bin/yt-dlp
+    && pip3 install --no-cache-dir -U yt-dlp \
+    && apt-get clean && rm -rf /var/lib/apt/lists/*
 
 # Copy Node dependencies from builder
 COPY --from=builder /app/node_modules ./node_modules
@@ -38,5 +37,5 @@ RUN mkdir -p /app/public
 # Expose server port
 EXPOSE 3000
 
-# Start the app
+# Start the Node server
 CMD ["node", "server.js"]
