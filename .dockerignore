@@ -1,0 +1,4 @@
+node_modules
+npm-debug.log
+public/*.mp4
+public/*.mp3
