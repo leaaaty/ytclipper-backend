@@ -1,8 +1,9 @@
 FROM node:20-slim
 
-# Install ffmpeg and yt-dlp directly from apt
+# Install dependencies: ffmpeg + python3 + pip
 RUN apt-get update && \
-    apt-get install -y ffmpeg yt-dlp && \
+    apt-get install -y ffmpeg python3 python3-pip && \
+    pip3 install --no-cache-dir -U yt-dlp && \
     apt-get clean && rm -rf /var/lib/apt/lists/*
 
 # Set working directory

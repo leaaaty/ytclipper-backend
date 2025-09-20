@@ -47,11 +47,12 @@ app.post('/download', async (req, res) => {
     const outPattern = path.join(TMP, `${id}.%(ext)s`);
 
     // yt-dlp download
-    const ytdlpArgs = format === 'audio'
-      ? ['-f', 'bestaudio', '-o', outPattern, url]
-      : ['-f', 'bestvideo+bestaudio/best', '-o', outPattern, url];
-
-    await run('yt-dlp', ytdlpArgs);
+    const ytdlpArgs = [
+    '--cookies', '/app/cookies.txt',
+    '-f', format === 'audio' ? 'bestaudio' : 'bestvideo+bestaudio/best',
+    '-o', outPattern,
+    url
+    ];
 
     const found = fs.readdirSync(TMP).find(f => f.startsWith(id));
     if (!found) throw new Error('File not found');
