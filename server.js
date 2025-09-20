@@ -48,14 +48,31 @@ app.post('/download', async (req, res) => {
 
     // yt-dlp download
     const ytdlpArgs = [
-    '--cookies', '/app/cookies.txt',
-    '-f', format === 'audio' ? 'bestaudio' : 'bestvideo+bestaudio/best',
-    '-o', outPattern,
-    url
+      '--cookies', '/app/cookies.txt',   // optional: remove if no cookies
+      '-f', format === 'audio' ? 'bestaudio' : 'bestvideo+bestaudio/best',
+      '-o', outPattern,
+      url
     ];
 
-    const found = fs.readdirSync(TMP).find(f => f.startsWith(id));
-    if (!found) throw new Error('File not found');
+    console.log('Running yt-dlp with args:', ytdlpArgs.join(' '));
+    try {
+      await run('yt-dlp', ytdlpArgs);
+    } catch (err) {
+      console.error('yt-dlp failed:', err.message);
+      console.log('TMP contents after yt-dlp:', fs.readdirSync(TMP));
+      return res.status(500).send(`yt-dlp failed: ${err.message}`);
+    }
+
+    // check TMP folder
+    const tmpFiles = fs.readdirSync(TMP);
+    console.log('TMP contents:', tmpFiles);
+
+    const found = tmpFiles.find(f => f.startsWith(id));
+    if (!found) {
+      console.error('File not found in TMP after yt-dlp');
+      return res.status(500).send('File not found — yt-dlp may have failed or video requires login');
+    }
+
     const downloadedPath = path.join(TMP, found);
 
     // ffmpeg process
@@ -75,7 +92,13 @@ app.post('/download', async (req, res) => {
       ffArgs.push('-c', 'copy', outputPath);
     }
 
-    await run('ffmpeg', ffArgs);
+    try {
+      await run('ffmpeg', ffArgs);
+    } catch (err) {
+      console.error('ffmpeg failed:', err.message);
+      return res.status(500).send('ffmpeg failed: ' + err.message);
+    }
+
     try { fs.unlinkSync(downloadedPath); } catch {}
 
     const host = req.headers.host;
@@ -83,8 +106,9 @@ app.post('/download', async (req, res) => {
     const downloadUrl = `${protocol}://${host}/file/${outputFilename}`;
 
     return res.json({ downloadUrl });
+
   } catch (err) {
-    console.error(err);
+    console.error('Unexpected error in /download:', err);
     res.status(500).send(err.message || 'Processing error');
   }
 });
