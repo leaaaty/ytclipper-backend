@@ -91,4 +91,12 @@ app.post('/download', async (req, res) => {
 app.use('/file', express.static(path.join(process.cwd(), 'public')));
 
 const PORT = process.env.PORT || 3000;
+
+app.get('/debug-env', (req, res) => {
+  res.json({
+    PORT: process.env.PORT,
+    API_KEY: process.env.API_KEY ? "✅ set" : "❌ not set"
+  });
+});
+
 app.listen(PORT, () => console.log(`Server running on ${PORT}`));
