@@ -1,12 +1,16 @@
 FROM node:20-slim
 
-# Install dependencies: ffmpeg + python3 + pip
+# Install dependencies safely
 RUN apt-get update && \
-    apt-get install -y ffmpeg python3 python3-pip && \
-    pip3 install --no-cache-dir -U yt-dlp && \
-    apt-get clean && rm -rf /var/lib/apt/lists/*
+    apt-get install -y --no-install-recommends \
+      ffmpeg \
+      python3 \
+      python3-pip \
+      curl \
+      ca-certificates \
+      && pip3 install --no-cache-dir -U yt-dlp \
+      && apt-get clean && rm -rf /var/lib/apt/lists/*
 
-# Set working directory
 WORKDIR /app
 
 # Copy dependencies and install
