@@ -46,9 +46,9 @@ app.post('/download', async (req, res) => {
     const id = `${Date.now()}-${randomUUID()}`;
     const outPattern = path.join(TMP, `${id}.%(ext)s`);
 
-    // yt-dlp download
+    // Use standalone yt-dlp binary
+    const ytdlpPath = '/usr/local/bin/yt-dlp';
     const ytdlpArgs = [
-      '--cookies', '/app/cookies.txt',   // optional: remove if no cookies
       '-f', format === 'audio' ? 'bestaudio' : 'bestvideo+bestaudio/best',
       '-o', outPattern,
       url
@@ -56,23 +56,15 @@ app.post('/download', async (req, res) => {
 
     console.log('Running yt-dlp with args:', ytdlpArgs.join(' '));
     try {
-      await run('yt-dlp', ytdlpArgs);
+      await run(ytdlpPath, ytdlpArgs);
     } catch (err) {
       console.error('yt-dlp failed:', err.message);
       console.log('TMP contents after yt-dlp:', fs.readdirSync(TMP));
       return res.status(500).send(`yt-dlp failed: ${err.message}`);
     }
 
-    // check TMP folder
-    const tmpFiles = fs.readdirSync(TMP);
-    console.log('TMP contents:', tmpFiles);
-
-    const found = tmpFiles.find(f => f.startsWith(id));
-    if (!found) {
-      console.error('File not found in TMP after yt-dlp');
-      return res.status(500).send('File not found — yt-dlp may have failed or video requires login');
-    }
-
+    const found = fs.readdirSync(TMP).find(f => f.startsWith(id));
+    if (!found) return res.status(500).send('File not found — yt-dlp may have failed or video requires login');
     const downloadedPath = path.join(TMP, found);
 
     // ffmpeg process
@@ -92,13 +84,7 @@ app.post('/download', async (req, res) => {
       ffArgs.push('-c', 'copy', outputPath);
     }
 
-    try {
-      await run('ffmpeg', ffArgs);
-    } catch (err) {
-      console.error('ffmpeg failed:', err.message);
-      return res.status(500).send('ffmpeg failed: ' + err.message);
-    }
-
+    await run('ffmpeg', ffArgs);
     try { fs.unlinkSync(downloadedPath); } catch {}
 
     const host = req.headers.host;
