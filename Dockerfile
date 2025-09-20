@@ -14,15 +14,15 @@ FROM node:20-slim
 
 WORKDIR /app
 
-# Install system dependencies: ffmpeg, curl, certificates
-# Download standalone yt-dlp binary (no Python required)
+# Install system dependencies: ffmpeg, Python3, pip, curl, certificates
 RUN apt-get update && \
     apt-get install -y --no-install-recommends \
       ffmpeg \
+      python3-full \
+      python3-pip \
       curl \
       ca-certificates \
-    && curl -L https://github.com/yt-dlp/yt-dlp/releases/latest/download/yt-dlp -o /usr/local/bin/yt-dlp \
-    && chmod +x /usr/local/bin/yt-dlp \
+    && pip3 install --no-cache-dir -U yt-dlp \
     && apt-get clean && rm -rf /var/lib/apt/lists/*
 
 # Copy Node dependencies from builder
